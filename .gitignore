@@ -1,0 +1,21 @@
+# --- Virtual Environments ---
+venv/
+.venv/
+env/
+.env/
+ENV/
+
+# --- PyInstaller & Build Artifacts ---
+build/
+dist/
+*.spec
+
+# --- Python Cache and Bytecode ---
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# --- Operating System Files ---
+.DS_Store
+Thumbs.db
