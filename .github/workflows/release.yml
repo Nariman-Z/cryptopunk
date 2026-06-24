@@ -3,7 +3,11 @@ name: Compile and Release
 on:
   push:
     tags:
-      - 'v*' # Triggers workflow whenever a tag starting with 'v' is pushed (e.g., v1.0.0)
+      - 'v*'
+
+# Add this block to fix the permission boundary
+permissions:
+  contents: write
 
 jobs:
   build:
@@ -69,6 +73,6 @@ jobs:
           dist/cryptopunk-windows.exe
         draft: false
         prerelease: false
-        generate_release_notes: true # Auto-generates changelogs from commits
+        generate_release_notes: true
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
