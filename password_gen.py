@@ -126,17 +126,16 @@ def draw_ui(stdscr, state):
     stdscr.erase()
     h, w = stdscr.getmaxyx()
 
-    # Dynamic protection boundary check before building windows
+    # Dynamic protection boundary check before building subwindows
     if h < MIN_ROWS or w < MIN_COLS:
         stdscr.attron(curses.color_pair(9) | curses.A_BOLD)
         stdscr.addstr(1, 2, "⚠️ SCREEN TOO SMALL FOR CRYPTOPUNK INTERFACE")
         stdscr.attroff(curses.color_pair(9) | curses.A_BOLD)
-        stdscr.addstr(3, 2, f"Current:  {w}x{h}")
-        stdscr.addstr(4, 2, f"Required: {MIN_COLS}x{MIN_ROWS}")
+        stdscr.addstr(3, 2, f"Current Window Geometry:  {w}x{h}")
+        stdscr.addstr(4, 2, f"Minimum Layout Required: {MIN_COLS}x{MIN_ROWS}")
         stdscr.attron(curses.color_pair(4))
-        stdscr.addstr(
-            6, 2, "Please expand/maximize your terminal shell or press [Q] to quit."
-        )
+        stdscr.addstr(6, 2, "Please fully maximize your terminal window shell context.")
+        stdscr.addstr(7, 2, "Press any key to close and exit safely...")
         stdscr.attroff(curses.color_pair(4))
         stdscr.refresh()
         return False
@@ -363,9 +362,9 @@ def main(stdscr):
         if ch in [ord("q"), ord("Q"), 27]:
             break
 
-        # If UI is in screen-too-small fallback state, bypass interactive controls
+        # FIX: Break instead of continue to safely drop out of the loop and prevent freezing
         if not ui_valid:
-            continue
+            break
 
         if ch == curses.KEY_UP:
             state["focus"] = (state["focus"] - 1) % 7
@@ -414,6 +413,5 @@ def main(stdscr):
 
 
 if __name__ == "__main__":
-    # Maximize Windows engine canvas frame layout before starting up wrapper
     force_windows_max_size()
     curses.wrapper(main)
