@@ -1,3 +1,4 @@
+import sys
 import curses
 import secrets
 import string
@@ -14,6 +15,25 @@ COLOR_TEXT_YELLOW = 24
 COLOR_TEXT_MAGENTA = 25
 COLOR_TEXT_ORANGE = 26
 COLOR_TEXT_RED = 27
+
+# Strictly enforced geometry bounds to accommodate your sub-window coordinate mesh
+MIN_ROWS = 40
+MIN_COLS = 100
+
+
+def force_windows_max_size():
+    """Natively maximize the console buffer if running on Windows/Wine before curses drops hooks."""
+    if sys.platform.startswith("win"):
+        try:
+            import ctypes
+
+            kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+            user32 = ctypes.WinDLL("user32", use_last_error=True)
+            hwnd = kernel32.GetConsoleWindow()
+            if hwnd:
+                user32.ShowWindow(hwnd, 3)  # SW_MAXIMIZE flag
+        except Exception:
+            pass
 
 
 def init_cyberpunk_palette():
@@ -106,6 +126,21 @@ def draw_ui(stdscr, state):
     stdscr.erase()
     h, w = stdscr.getmaxyx()
 
+    # Dynamic protection boundary check before building windows
+    if h < MIN_ROWS or w < MIN_COLS:
+        stdscr.attron(curses.color_pair(9) | curses.A_BOLD)
+        stdscr.addstr(1, 2, "⚠️ SCREEN TOO SMALL FOR CRYPTOPUNK INTERFACE")
+        stdscr.attroff(curses.color_pair(9) | curses.A_BOLD)
+        stdscr.addstr(3, 2, f"Current:  {w}x{h}")
+        stdscr.addstr(4, 2, f"Required: {MIN_COLS}x{MIN_ROWS}")
+        stdscr.attron(curses.color_pair(4))
+        stdscr.addstr(
+            6, 2, "Please expand/maximize your terminal shell or press [Q] to quit."
+        )
+        stdscr.attroff(curses.color_pair(4))
+        stdscr.refresh()
+        return False
+
     banner_p1 = [
         "██████╗  █████╗ ███████╗███████╗██╗    ██╗ ██████╗ ██████╗ ██╗     ██████╗ ",
         "██╔══██╗██╔══██╗██╔════╝██╔════╝██║    ██║██╔═══██╗██╔══██╗██║     ██╔══██╗",
@@ -188,7 +223,7 @@ def draw_ui(stdscr, state):
         opt_win.attroff(curses.A_REVERSE | curses.color_pair(8) | curses.color_pair(7))
     opt_win.refresh()
 
-    # 3. Help Window - Expanded height to 14 to perfectly match the right segment spacing
+    # 3. Help Window
     help_win = curses.newwin(14, 30, 17, 69)
     help_win.attron(curses.color_pair(3))
     help_win.box()
@@ -243,7 +278,6 @@ def draw_ui(stdscr, state):
 
     help_win.refresh()
 
-    # --- Dynamic Rating Parameters (Fixed Variable Initialization Order) ---
     if state["length"] < 8:
         strength_str, strength_color, check_char = "Weak  ", curses.color_pair(9), "✗"
     elif state["length"] < 12:
@@ -260,16 +294,10 @@ def draw_ui(stdscr, state):
     gen_win.addstr(0, 2, " Generated Password ")
     gen_win.attroff(2 | curses.A_BOLD)
 
-    # Row 1 left blank intentionally for spacing
-
-    # Row 2: Render Password safely wrapped
     gen_win.addstr(
         2, 4, f"{state['pwd'][:40] + ('...' if len(state['pwd']) > 40 else ''):<40}"
     )
 
-    # Row 3 left blank intentionally for spacing
-
-    # Row 4: Merged Metadata lines with icons next to metrics
     footer_row = 4
     gen_win.attron(curses.color_pair(5))
     gen_win.addstr(footer_row, 2, f"Entropy: {state['entropy']:.2f} bits")
@@ -305,13 +333,13 @@ def draw_ui(stdscr, state):
         cmd_win.addstr(1, curr_x + len(key), f" {desc}   ")
         curr_x += len(key) + len(desc) + 4
     cmd_win.refresh()
+    return True
 
 
 def main(stdscr):
     init_cyberpunk_palette()
     curses.curs_set(0)
 
-    # Instantly maps to [R] context-aware regeneration state upon initial launch window layout
     state = {
         "length": 16,
         "upper": True,
@@ -329,12 +357,17 @@ def main(stdscr):
     state["pwd"], state["entropy"] = generate_password(state)
 
     while True:
-        draw_ui(stdscr, state)
+        ui_valid = draw_ui(stdscr, state)
         ch = stdscr.getch()
 
         if ch in [ord("q"), ord("Q"), 27]:
             break
-        elif ch == curses.KEY_UP:
+
+        # If UI is in screen-too-small fallback state, bypass interactive controls
+        if not ui_valid:
+            continue
+
+        if ch == curses.KEY_UP:
             state["focus"] = (state["focus"] - 1) % 7
         elif ch == curses.KEY_DOWN:
             state["focus"] = (state["focus"] + 1) % 7
@@ -381,4 +414,6 @@ def main(stdscr):
 
 
 if __name__ == "__main__":
+    # Maximize Windows engine canvas frame layout before starting up wrapper
+    force_windows_max_size()
     curses.wrapper(main)

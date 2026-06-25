@@ -41,7 +41,7 @@ jobs:
 
     - name: Compile with PyInstaller
       run: |
-        pyinstaller --onefile --name=${{ matrix.asset_name }} password_gen.py
+        pyinstaller --onefile --console --clean --name=${{ matrix.asset_name }} password_gen.py
       shell: bash
 
     - name: Upload Build Artifacts
