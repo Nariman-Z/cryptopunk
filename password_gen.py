@@ -129,13 +129,13 @@ def draw_ui(stdscr, state):
     # Dynamic protection boundary check before building subwindows
     if h < MIN_ROWS or w < MIN_COLS:
         stdscr.attron(curses.color_pair(9) | curses.A_BOLD)
-        stdscr.addstr(1, 2, "⚠️ SCREEN TOO SMALL FOR CRYPTOPUNK INTERFACE")
+        stdscr.addstr(1, 2, "[!] SCREEN TOO SMALL FOR CRYPTOPUNK INTERFACE")
         stdscr.attroff(curses.color_pair(9) | curses.A_BOLD)
-        stdscr.addstr(3, 2, f"Current Window Geometry:  {w}x{h}")
-        stdscr.addstr(4, 2, f"Minimum Layout Required: {MIN_COLS}x{MIN_ROWS}")
+        stdscr.addstr(3, 2, f"Current size:  {w} x {h}")
+        stdscr.addstr(4, 2, f"Required size: {MIN_COLS} x {MIN_ROWS}")
         stdscr.attron(curses.color_pair(4))
-        stdscr.addstr(6, 2, "Please fully maximize your terminal window shell context.")
-        stdscr.addstr(7, 2, "Press any key to close and exit safely...")
+        stdscr.addstr(7, 2, "Please resize or maximize your terminal window.")
+        stdscr.addstr(8, 2, "Waiting for a valid terminal size...")
         stdscr.attroff(curses.color_pair(4))
         stdscr.refresh()
         return False
@@ -338,7 +338,7 @@ def draw_ui(stdscr, state):
 def main(stdscr):
     init_cyberpunk_palette()
     curses.curs_set(0)
-
+    stdscr.timeout(200)
     state = {
         "length": 16,
         "upper": True,
@@ -357,13 +357,18 @@ def main(stdscr):
 
     while True:
         ui_valid = draw_ui(stdscr, state)
+
+        if not ui_valid:
+            ch = stdscr.getch()
+
+            if ch == curses.KEY_RESIZE:
+                curses.update_lines_cols()
+
+            continue
+
         ch = stdscr.getch()
 
         if ch in [ord("q"), ord("Q"), 27]:
-            break
-
-        # FIX: Break instead of continue to safely drop out of the loop and prevent freezing
-        if not ui_valid:
             break
 
         if ch == curses.KEY_UP:
@@ -413,5 +418,5 @@ def main(stdscr):
 
 
 if __name__ == "__main__":
-    force_windows_max_size()
+#    force_windows_max_size()
     curses.wrapper(main)
