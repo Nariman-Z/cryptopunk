@@ -1,4 +1,5 @@
 import sys
+import os
 import curses
 import secrets
 import string
@@ -22,7 +23,7 @@ MIN_COLS = 100
 
 
 def force_windows_max_size():
-    """Natively maximize the console buffer if running on Windows/Wine before curses drops hooks."""
+    """Natively maximize the console buffer if running on Windows/Wine."""
     if sys.platform.startswith("win"):
         try:
             import ctypes
@@ -97,29 +98,48 @@ def generate_password(state):
 
 
 def copy_to_clipboard(text):
-    try:
-        process = subprocess.Popen(
-            ["xclip", "-selection", "clipboard"], stdin=subprocess.PIPE
-        )
-        process.communicate(input=text.encode("utf-8"))
-    except FileNotFoundError:
+    """Cross-platform clipboard copy routing."""
+    if sys.platform.startswith("win"):
+        try:
+            # Leverage Windows native clip.exe tool cleanly
+            process = subprocess.Popen(["clip"], stdin=subprocess.PIPE, shell=True)
+            process.communicate(input=text.encode("utf-8"))
+        except Exception:
+            pass
+    else:
         try:
             process = subprocess.Popen(
-                ["xsel", "--clipboard", "--input"], stdin=subprocess.PIPE
+                ["xclip", "-selection", "clipboard"], stdin=subprocess.PIPE
             )
             process.communicate(input=text.encode("utf-8"))
         except FileNotFoundError:
-            pass
+            try:
+                process = subprocess.Popen(
+                    ["xsel", "--clipboard", "--input"], stdin=subprocess.PIPE
+                )
+                process.communicate(input=text.encode("utf-8"))
+            except FileNotFoundError:
+                pass
 
 
 def open_github_silently():
-    try:
-        url = "https://github.com/nariman-z"
-        subprocess.Popen(
-            ["xdg-open", url], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
-        )
-    except Exception:
-        pass
+    """Cross-platform web link deployment routing."""
+    url = "https://github.com/nariman-z"
+    if sys.platform.startswith("win"):
+        try:
+            os.startfile(url)
+        except AttributeError:
+            try:
+                subprocess.Popen(f"start {url}", shell=True)
+            except Exception:
+                pass
+    else:
+        try:
+            subprocess.Popen(
+                ["xdg-open", url], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+            )
+        except Exception:
+            pass
 
 
 def draw_ui(stdscr, state):
@@ -338,7 +358,10 @@ def draw_ui(stdscr, state):
 def main(stdscr):
     init_cyberpunk_palette()
     curses.curs_set(0)
-    stdscr.timeout(200)
+
+    # REMOVED timeout(200) to change getch() back to standard blocking mode.
+    # This completely solves the 5Hz screen-erasing loop that caused flickering on Linux.
+
     state = {
         "length": 16,
         "upper": True,
@@ -358,15 +381,14 @@ def main(stdscr):
     while True:
         ui_valid = draw_ui(stdscr, state)
 
-        if not ui_valid:
-            ch = stdscr.getch()
+        ch = stdscr.getch()
 
-            if ch == curses.KEY_RESIZE:
-                curses.update_lines_cols()
-
+        if ch == curses.KEY_RESIZE:
+            curses.update_lines_cols()
             continue
 
-        ch = stdscr.getch()
+        if not ui_valid:
+            continue
 
         if ch in [ord("q"), ord("Q"), 27]:
             break
@@ -418,5 +440,5 @@ def main(stdscr):
 
 
 if __name__ == "__main__":
-#    force_windows_max_size()
+    force_windows_max_size()
     curses.wrapper(main)
