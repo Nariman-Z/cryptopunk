@@ -54,15 +54,20 @@ Implemented via a modular **Python 3 Standard Library** structure utilizing safe
 
 ---
 
-## 🚀 Key Features
+## 🚀 Release & Distribution
 
-| Operational Vector | Functional Characteristics |
-| --- | --- |
-| **Pool Modification** | Dynamic array parsing • Structural similar exclusions • Ambiguous sign filters |
-| **Instrumentation** | Live bit-weight processing • Contextual string wrap metrics • Color-coded strength indicators |
-| **Clipboard** | Direct raw string passing • Automated fallback checking • OpenSSL console format export |
-| **Resilience** | Safe terminal state restorations • Empty-pool error catch wrappers • Bound constraint checks |
-| **UI Aesthetics** | Built-in Cyberpunk color matrices • Vertical alignment grids • Unified Quick Guide console |
+`cryptopunk` ships with a fully automated cross-platform release pipeline powered by GitHub Actions.
+
+### Build Pipeline Features
+
+* ✅ Automated Linux and Windows executable generation
+* ✅ Versioned GitHub Releases with attached binaries
+* ✅ Windows-specific `windows-curses` dependency injection
+* ✅ Console flag optimizations for native Windows terminal support
+* ✅ Artifact packaging and release publishing
+* ✅ Permission-aware workflow configuration for seamless updates
+
+The release workflow ensures every tagged version is automatically compiled and distributed without requiring local build tooling.
 
 ---
 
@@ -82,25 +87,31 @@ Implemented via a modular **Python 3 Standard Library** structure utilizing safe
 
 ---
 
-## 🛡️ Exception Control & Safety Parameters
+## 🛡️ Reliability Improvements
 
-* **Decoupled Cryptography Layout:** All string generation relies exclusively on operating system entropy loops, leaving no temporary files on disk.
-* **Standard Screen Escapes:** Wraps the entire core execution block in a protective `curses.wrapper` framework to ensure standard shell visibility is completely recovered even during unexpected runtime interruptions.
-* **Memory Boundary Truncation:** Passwords scaling beyond normal boundaries are safely managed via specific view-box constraints to keep layout grids fully aligned.
-* **Subprocess Error Insulation:** Fallback structural loops prevent the main UI cycle from freezing if standard clipboard programs are missing on user environments.
+Recent updates focused on making `cryptopunk` more resilient across different terminal environments:
+
+* **Dynamic Terminal Resize Handling** – The application no longer exits when the terminal becomes too small. Instead, it gracefully waits until sufficient space is available again.
+* **Improved Screen Restoration** – Better handling of unexpected terminal states and redraw operations.
+* **Enhanced Cross-Platform Compatibility** – Additional safeguards for Linux and Windows console implementations.
 
 ---
 
 ## 📜 Version Ledger
 
-| Generation | Deployment Context | Notable Milestones & Iterations |
-| --- | --- | --- |
-| **v1.0.0** | **June 2026** | **Initial Release: Built Cyberpunk UI palette, unified real-time entropy metrics, and integrated multi-platform distribution actions.** |
+| Version    | Release Date | Highlights                                                                                                                                |
+| ---------- | ------------ | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| **v1.0.2** | June 2026    | Added write permissions to release workflows and improved automated artifact publishing reliability.                                      |
+| **v1.0.3** | June 2026    | Introduced Windows-specific build improvements, console flag optimizations, and automatic `windows-curses` dependency injection.          |
+| **v1.0.4** | June 2026    | Production optimizations and release pipeline refinements for more stable cross-platform binary distribution.                             |
+| **v1.0.5** | June 2026    | Improved terminal resilience by gracefully handling terminal resize events and preventing application exits on small terminal dimensions. |
 
 ---
 
 ## 🦾 Contributing & Dev Cycle
 Want to hack on `cryptopunk`? Contributions, feature requests, and bug reports are welcome! Whether you are fixing a UI grid misalignment, optimizing the entropy math, or adding platform support, here is how to get involved:
+
+### Development Workflow
 
 1. **Fork the Repository** — Create a personal copy of the project deck.
 2. **Create a Feature Branch** — Keep your changes isolated (`git checkout -b feature/amazing-tweak`).
@@ -108,6 +119,17 @@ Want to hack on `cryptopunk`? Contributions, feature requests, and bug reports a
 4. **Open a Pull Request** — Submit your branch against `main` with a clear summary of your structural modifications.
 
 Found a bug or have an idea? Skip the code and open an interactive issue ticket on the tracker directly!
+
+### Ways to Contribute
+
+* 🐛 Bug fixes
+* ✨ New features
+* 🎨 UI/UX improvements
+* 📚 Documentation improvements
+* 🧪 Testing on additional platforms
+* 🔒 Security reviews
+
+Every contribution, no matter how small, helps make `cryptopunk` better.
 
 ---
 
@@ -119,8 +141,12 @@ Licensed under the terms of the **MIT License**. This project is completely open
 
 <div align="center">
 
-### Made with ❤️ by [Nariman_Z](https://github.com/nariman-z)  
-🌐 [Personal Website](https://nariman-z.pages.dev/)
+## Made with vibe & caffeine ☕
+[![Maintainer](https://img.shields.io/badge/Built%20and%20maintained%20by:-Nariman%20Ziaie-C0392B?style=plastic)](https://github.com/Nariman-Z)
+
+Contributors:
+
+[![Contributor #1](https://img.shields.io/badge/%231-Omid--H-2980B9?style=plastic)](https://github.com/Omid-H)
 
 </div>
 
@@ -128,4 +154,4 @@ Licensed under the terms of the **MIT License**. This project is completely open
 <img src="https://user-images.githubusercontent.com/73097560/115834477-dbab4500-a447-11eb-908a-139a6edaec5c.gif">
 
 
-*Last Update: June 24, 2026*
+*Last Updated: June 26, 2026*
