@@ -105,6 +105,7 @@ Recent updates focused on making `cryptopunk` more resilient across different te
 | **v1.0.3** | June 2026    | Introduced Windows-specific build improvements, console flag optimizations, and automatic `windows-curses` dependency injection.          |
 | **v1.0.4** | June 2026    | Production optimizations and release pipeline refinements for more stable cross-platform binary distribution.                             |
 | **v1.0.5** | June 2026    | Improved terminal resilience by gracefully handling terminal resize events and preventing application exits on small terminal dimensions. |
+| **v1.0.6** | July 2026    | Fixed Windows console Unicode display issues, implemented color palette fallback, added standard Enter key bindings, and implemented the missing Save keyboard shortcut. |
 
 ---
 
@@ -154,4 +155,4 @@ Contributors:
 <img src="https://user-images.githubusercontent.com/73097560/115834477-dbab4500-a447-11eb-908a-139a6edaec5c.gif">
 
 
-*Last Updated: June 26, 2026*
+*Last Updated: July 17, 2026*

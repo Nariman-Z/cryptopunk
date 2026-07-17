@@ -23,12 +23,16 @@ MIN_COLS = 100
 
 
 def force_windows_max_size():
-    """Natively maximize the console buffer if running on Windows/Wine."""
+    """Natively maximize the console buffer and set UTF-8 code pages if running on Windows."""
     if sys.platform.startswith("win"):
         try:
             import ctypes
 
             kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+            # Set console output and input code page to UTF-8 (65001)
+            kernel32.SetConsoleOutputCP(65001)
+            kernel32.SetConsoleCP(65001)
+
             user32 = ctypes.WinDLL("user32", use_last_error=True)
             hwnd = kernel32.GetConsoleWindow()
             if hwnd:
@@ -40,35 +44,76 @@ def force_windows_max_size():
 def init_cyberpunk_palette():
     curses.start_color()
     curses.use_default_colors()
-    curses.init_color(COLOR_BORDER_GREY, 300, 300, 300)
-    curses.init_color(COLOR_TEXT_MUTED, 500, 500, 500)
-    curses.init_color(COLOR_TEXT_CYAN, 0, 800, 1000)
-    curses.init_color(COLOR_TEXT_GREEN, 0, 1000, 400)
-    curses.init_color(COLOR_TEXT_YELLOW, 1000, 1000, 0)
-    curses.init_color(COLOR_TEXT_MAGENTA, 1000, 200, 800)
-    curses.init_color(COLOR_TEXT_ORANGE, 1000, 500, 0)
-    curses.init_color(COLOR_TEXT_RED, 1000, 0, 300)
 
-    curses.init_pair(1, COLOR_TEXT_ORANGE, -1)
-    curses.init_pair(2, COLOR_TEXT_GREEN, -1)
-    curses.init_pair(3, COLOR_TEXT_MAGENTA, -1)
-    curses.init_pair(4, COLOR_TEXT_CYAN, -1)
-    curses.init_pair(5, COLOR_TEXT_MUTED, -1)
-    curses.init_pair(6, COLOR_BORDER_GREY, -1)
-    curses.init_pair(7, curses.COLOR_WHITE, -1)
-    curses.init_pair(8, COLOR_TEXT_YELLOW, -1)
-    curses.init_pair(9, COLOR_TEXT_RED, -1)
+    can_change = False
+    try:
+        can_change = curses.can_change_color()
+    except Exception:
+        pass
 
-    rainbow = [
-        COLOR_TEXT_MAGENTA,
-        COLOR_TEXT_RED,
-        COLOR_TEXT_ORANGE,
-        COLOR_TEXT_YELLOW,
-        COLOR_TEXT_GREEN,
-        COLOR_TEXT_CYAN,
-    ]
-    for i, color in enumerate(rainbow):
-        curses.init_pair(COLOR_TITLE_START + i, color, -1)
+    num_colors = 8
+    try:
+        num_colors = curses.COLORS
+    except Exception:
+        pass
+
+    if num_colors >= 256:
+        if can_change:
+            try:
+                curses.init_color(COLOR_BORDER_GREY, 300, 300, 300)
+                curses.init_color(COLOR_TEXT_MUTED, 500, 500, 500)
+                curses.init_color(COLOR_TEXT_CYAN, 0, 800, 1000)
+                curses.init_color(COLOR_TEXT_GREEN, 0, 1000, 400)
+                curses.init_color(COLOR_TEXT_YELLOW, 1000, 1000, 0)
+                curses.init_color(COLOR_TEXT_MAGENTA, 1000, 200, 800)
+                curses.init_color(COLOR_TEXT_ORANGE, 1000, 500, 0)
+                curses.init_color(COLOR_TEXT_RED, 1000, 0, 300)
+            except Exception:
+                pass
+
+        curses.init_pair(1, COLOR_TEXT_ORANGE, -1)
+        curses.init_pair(2, COLOR_TEXT_GREEN, -1)
+        curses.init_pair(3, COLOR_TEXT_MAGENTA, -1)
+        curses.init_pair(4, COLOR_TEXT_CYAN, -1)
+        curses.init_pair(5, COLOR_TEXT_MUTED, -1)
+        curses.init_pair(6, COLOR_BORDER_GREY, -1)
+        curses.init_pair(7, curses.COLOR_WHITE, -1)
+        curses.init_pair(8, COLOR_TEXT_YELLOW, -1)
+        curses.init_pair(9, COLOR_TEXT_RED, -1)
+
+        rainbow = [
+            COLOR_TEXT_MAGENTA,
+            COLOR_TEXT_RED,
+            COLOR_TEXT_ORANGE,
+            COLOR_TEXT_YELLOW,
+            COLOR_TEXT_GREEN,
+            COLOR_TEXT_CYAN,
+        ]
+        for i, color in enumerate(rainbow):
+            curses.init_pair(COLOR_TITLE_START + i, color, -1)
+    else:
+        # Fallback to standard ANSI colors
+        curses.init_pair(1, curses.COLOR_YELLOW, -1)  # ORANGE fallback
+        curses.init_pair(2, curses.COLOR_GREEN, -1)
+        curses.init_pair(3, curses.COLOR_MAGENTA, -1)
+        curses.init_pair(4, curses.COLOR_CYAN, -1)
+        # Use white/default, or black if white is background. Under standard use, COLOR_WHITE is safe.
+        curses.init_pair(5, curses.COLOR_WHITE, -1)   # MUTED fallback
+        curses.init_pair(6, curses.COLOR_WHITE, -1)   # BORDER fallback
+        curses.init_pair(7, curses.COLOR_WHITE, -1)
+        curses.init_pair(8, curses.COLOR_YELLOW, -1)
+        curses.init_pair(9, curses.COLOR_RED, -1)
+
+        rainbow = [
+            curses.COLOR_MAGENTA,
+            curses.COLOR_RED,
+            curses.COLOR_YELLOW,
+            curses.COLOR_YELLOW,
+            curses.COLOR_GREEN,
+            curses.COLOR_CYAN,
+        ]
+        for i, color in enumerate(rainbow):
+            curses.init_pair(COLOR_TITLE_START + i, color, -1)
 
 
 def generate_password(state):
@@ -142,22 +187,9 @@ def open_github_silently():
             pass
 
 
-def draw_ui(stdscr, state):
-    stdscr.erase()
+def draw_banner(stdscr):
     h, w = stdscr.getmaxyx()
-
-    # Dynamic protection boundary check before building subwindows
     if h < MIN_ROWS or w < MIN_COLS:
-        stdscr.attron(curses.color_pair(9) | curses.A_BOLD)
-        stdscr.addstr(1, 2, "[!] SCREEN TOO SMALL FOR CRYPTOPUNK INTERFACE")
-        stdscr.attroff(curses.color_pair(9) | curses.A_BOLD)
-        stdscr.addstr(3, 2, f"Current size:  {w} x {h}")
-        stdscr.addstr(4, 2, f"Required size: {MIN_COLS} x {MIN_ROWS}")
-        stdscr.attron(curses.color_pair(4))
-        stdscr.addstr(7, 2, "Please resize or maximize your terminal window.")
-        stdscr.addstr(8, 2, "Waiting for a valid terminal size...")
-        stdscr.attroff(curses.color_pair(4))
-        stdscr.refresh()
         return False
 
     banner_p1 = [
@@ -178,12 +210,43 @@ def draw_ui(stdscr, state):
     ]
 
     for i in range(6):
-        stdscr.attron(curses.color_pair(COLOR_TITLE_START + (i % 6)))
+        color_idx = COLOR_TITLE_START + (i % 6)
+        stdscr.attron(curses.color_pair(color_idx))
         if 1 + i < h and 2 < w:
             stdscr.addstr(1 + i, 2, banner_p1[i][: w - 4])
         if 7 + i < h and 2 < w:
             stdscr.addstr(7 + i, 2, banner_p2[i][: w - 4])
-        stdscr.attroff(curses.color_pair(COLOR_TITLE_START + (i % 6)))
+        stdscr.attroff(curses.color_pair(color_idx))
+    return True
+
+
+def draw_ui(stdscr, state):
+    stdscr.erase()
+    h, w = stdscr.getmaxyx()
+
+    # Dynamic protection boundary check before building subwindows
+    if h < MIN_ROWS or w < MIN_COLS:
+        try:
+            if h > 1 and w > 5:
+                stdscr.attron(curses.color_pair(9) | curses.A_BOLD)
+                stdscr.addstr(1, 2, "[!] SCREEN TOO SMALL FOR CRYPTOPUNK INTERFACE"[:w - 3])
+                stdscr.attroff(curses.color_pair(9) | curses.A_BOLD)
+            if h > 3 and w > 5:
+                stdscr.addstr(3, 2, f"Current size:  {w} x {h}"[:w - 3])
+            if h > 4 and w > 5:
+                stdscr.addstr(4, 2, f"Required size: {MIN_COLS} x {MIN_ROWS}"[:w - 3])
+            if h > 7 and w > 5:
+                stdscr.attron(curses.color_pair(4))
+                stdscr.addstr(7, 2, "Please resize or maximize your terminal window."[:w - 3])
+            if h > 8 and w > 5:
+                stdscr.addstr(8, 2, "Waiting for a valid terminal size..."[:w - 3])
+                stdscr.attroff(curses.color_pair(4))
+            stdscr.refresh()
+        except curses.error:
+            pass
+        return False
+
+    draw_banner(stdscr)
 
     if 14 < h:
         stdscr.attron(curses.color_pair(5))
@@ -359,9 +422,6 @@ def main(stdscr):
     init_cyberpunk_palette()
     curses.curs_set(0)
 
-    # REMOVED timeout(200) to change getch() back to standard blocking mode.
-    # This completely solves the 5Hz screen-erasing loop that caused flickering on Linux.
-
     state = {
         "length": 16,
         "upper": True,
@@ -401,14 +461,14 @@ def main(stdscr):
         elif ch == curses.KEY_LEFT:
             if state["focus"] == 0:
                 state["length"] = 64 if state["length"] <= 4 else state["length"] - 1
-            state["pwd"], state["entropy"] = generate_password(state)
+                state["pwd"], state["entropy"] = generate_password(state)
 
         elif ch == curses.KEY_RIGHT:
             if state["focus"] == 0:
                 state["length"] = 4 if state["length"] >= 64 else state["length"] + 1
-            state["pwd"], state["entropy"] = generate_password(state)
+                state["pwd"], state["entropy"] = generate_password(state)
 
-        elif ch in [ord(" "), 10, 13]:
+        elif ch in [ord(" "), 10, 13, curses.KEY_ENTER]:
             f = state["focus"]
             if f == 1:
                 state["upper"] = not state["upper"]
@@ -430,6 +490,14 @@ def main(stdscr):
         elif ch in [ord("c"), ord("C")]:
             if state["pwd"]:
                 copy_to_clipboard(state["pwd"])
+
+        elif ch in [ord("s"), ord("S")]:
+            if state["pwd"]:
+                try:
+                    with open("passwords.txt", "a", encoding="utf-8") as f:
+                        f.write(state["pwd"] + "\n")
+                except Exception:
+                    pass
 
         elif ch in [ord("e"), ord("E")]:
             openssl_cmd = f"openssl rand -base64 {state['length']}"
