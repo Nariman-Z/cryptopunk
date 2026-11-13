@@ -30,7 +30,7 @@ Ideally suited for system administrators, security engineers, and enthusiasts wh
 | --- | --- |
 | **Python 3.12+** | Core execution runtime driving asynchronous state logic and calculations. |
 | **Curses Engine** | High-efficiency terminal manipulation wrapper providing raw key events and cell rendering. |
-| **xclip / xsel** | Optional Linux dependencies used to bridge password variables seamlessly to the X11 clipboard environment. |
+| **xclip / xsel / wl-copy** | Optional Linux dependencies used to bridge password variables seamlessly to the X11 or Wayland clipboard environment. |
 | **PyInstaller** | Binary deployment framework used to cook multi-platform standalone click-to-run assets. |
 
 ---
@@ -58,11 +58,25 @@ Implemented via a modular **Python 3 Standard Library** structure utilizing safe
 
 `cryptopunk` ships with a fully automated cross-platform release pipeline powered by GitHub Actions.
 
+### Released Binaries
+
+| Platform | File | Format |
+| --- | --- | --- |
+| **Linux x86\_64** | `cryptopunk-linux-x86_64.AppImage` | AppImage — portable, no install needed |
+| **Windows x86\_64** | `cryptopunk-windows-x86_64.exe` | Standalone EXE — no Python required |
+
+> **Linux:** Download, `chmod +x cryptopunk-linux-x86_64.AppImage`, then run it.
+> Requires FUSE 2 (`libfuse2`) — present by default on most distros.
+>
+> **Windows:** Download and double-click (or run from a terminal). A console window will open — this is expected for a TUI application.
+
 ### Build Pipeline Features
 
-* ✅ Automated Linux and Windows executable generation
+* ✅ Automated Linux AppImage and Windows EXE generation
+* ✅ Architecture-tagged filenames (`x86_64`) for both platforms
 * ✅ Versioned GitHub Releases with attached binaries
 * ✅ Windows-specific `windows-curses` dependency injection
+* ✅ Wayland + X11 clipboard support on Linux (`wl-copy` → `xclip` → `xsel`)
 * ✅ Console flag optimizations for native Windows terminal support
 * ✅ Artifact packaging and release publishing
 * ✅ Permission-aware workflow configuration for seamless updates
@@ -106,6 +120,7 @@ Recent updates focused on making `cryptopunk` more resilient across different te
 | **v1.0.4** | June 2026    | Production optimizations and release pipeline refinements for more stable cross-platform binary distribution.                             |
 | **v1.0.5** | June 2026    | Improved terminal resilience by gracefully handling terminal resize events and preventing application exits on small terminal dimensions. |
 | **v1.0.6** | July 2026    | Fixed Windows console Unicode display issues, implemented color palette fallback, added standard Enter key bindings, and implemented the missing Save keyboard shortcut. |
+| **v1.0.7** | November 2026 | Cross-platform reliability overhaul: fixed all `curses.attroff()` raw-integer bugs, corrected Windows clipboard encoding (UTF-16 LE), added Wayland (`wl-copy`) clipboard support, and switched Linux distribution format to AppImage. Both release binaries now carry architecture-tagged filenames (`x86_64`). |
 
 ---
 
@@ -155,4 +170,4 @@ Contributors:
 <img src="https://user-images.githubusercontent.com/73097560/115834477-dbab4500-a447-11eb-908a-139a6edaec5c.gif">
 
 
-*Last Updated: July 17, 2026*
+*Last Updated: November 2026*

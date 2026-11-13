@@ -146,25 +146,29 @@ def copy_to_clipboard(text):
     """Cross-platform clipboard copy routing."""
     if sys.platform.startswith("win"):
         try:
-            # Leverage Windows native clip.exe tool cleanly
-            process = subprocess.Popen(["clip"], stdin=subprocess.PIPE, shell=True)
-            process.communicate(input=text.encode("utf-8"))
+            # Use clip.exe as a string command (required when shell=True)
+            process = subprocess.Popen("clip", stdin=subprocess.PIPE, shell=True)
+            process.communicate(input=text.encode("utf-16-le"))
         except Exception:
             pass
     else:
-        try:
-            process = subprocess.Popen(
-                ["xclip", "-selection", "clipboard"], stdin=subprocess.PIPE
-            )
-            process.communicate(input=text.encode("utf-8"))
-        except FileNotFoundError:
+        encoded = text.encode("utf-8")
+        # Wayland (wl-copy) → X11 xclip → X11 xsel → silent fail
+        for cmd in (
+            ["wl-copy"],
+            ["xclip", "-selection", "clipboard"],
+            ["xsel", "--clipboard", "--input"],
+        ):
             try:
                 process = subprocess.Popen(
-                    ["xsel", "--clipboard", "--input"], stdin=subprocess.PIPE
+                    cmd, stdin=subprocess.PIPE,
+                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
                 )
-                process.communicate(input=text.encode("utf-8"))
+                process.communicate(input=encoded)
+                if process.returncode == 0:
+                    return
             except FileNotFoundError:
-                pass
+                continue
 
 
 def open_github_silently():
@@ -252,7 +256,7 @@ def draw_ui(stdscr, state):
         stdscr.attron(curses.color_pair(5))
         stdscr.addstr(14, 2, "Interactive OpenSSL Password Generator")
         stdscr.addstr(15, 2, "Secure. Strong. Beautiful.")
-        stdscr.attroff(5)
+        stdscr.attroff(curses.color_pair(5))
 
     # Dynamic layout positions
     gen_box_y = 30
@@ -264,8 +268,10 @@ def draw_ui(stdscr, state):
         if footer_y < h:
             stdscr.attron(curses.color_pair(3))
             stdscr.addstr(footer_y, 2, "🌐 Powered by OpenSSL")
+            stdscr.attroff(curses.color_pair(3))
             stdscr.attron(curses.color_pair(4))
             stdscr.addstr(footer_y, 68, "Stay secure. Stay strong.")
+            stdscr.attroff(curses.color_pair(4))
     except curses.error:
         pass
 
@@ -275,10 +281,10 @@ def draw_ui(stdscr, state):
     opt_win = curses.newwin(11, 65, 17, 2)
     opt_win.attron(curses.color_pair(6))
     opt_win.box()
-    opt_win.attroff(6)
+    opt_win.attroff(curses.color_pair(6))
     opt_win.attron(curses.color_pair(1) | curses.A_BOLD)
     opt_win.addstr(0, 3, " Password Options ")
-    opt_win.attroff(1 | curses.A_BOLD)
+    opt_win.attroff(curses.color_pair(1) | curses.A_BOLD)
 
     options_text = [
         ("Password Length", f"[ {state['length']:>2} ]"),
@@ -309,9 +315,10 @@ def draw_ui(stdscr, state):
     help_win = curses.newwin(14, 30, 17, 69)
     help_win.attron(curses.color_pair(3))
     help_win.box()
-    help_win.attron(curses.color_pair(1) | curses.color_pair(3))
+    help_win.attroff(curses.color_pair(3))
+    help_win.attron(curses.color_pair(1))
     help_win.addstr(0, 9, " Quick Guide ")
-    help_win.attroff(1 | curses.color_pair(3))
+    help_win.attroff(curses.color_pair(1))
 
     help_win.attron(curses.color_pair(4))
     help_win.addstr(1, 2, "↑↓")
@@ -371,10 +378,10 @@ def draw_ui(stdscr, state):
     gen_win = curses.newwin(gen_box_h, 65, gen_box_y, 2)
     gen_win.attron(curses.color_pair(6))
     gen_win.box()
-    gen_win.attroff(6)
+    gen_win.attroff(curses.color_pair(6))
     gen_win.attron(curses.color_pair(2) | curses.A_BOLD)
     gen_win.addstr(0, 2, " Generated Password ")
-    gen_win.attroff(2 | curses.A_BOLD)
+    gen_win.attroff(curses.color_pair(2) | curses.A_BOLD)
 
     gen_win.addstr(
         2, 4, f"{state['pwd'][:40] + ('...' if len(state['pwd']) > 40 else ''):<40}"
@@ -384,6 +391,7 @@ def draw_ui(stdscr, state):
     gen_win.attron(curses.color_pair(5))
     gen_win.addstr(footer_row, 2, f"Entropy: {state['entropy']:.2f} bits")
     gen_win.addstr(footer_row, 30, "Strength: ")
+    gen_win.attroff(curses.color_pair(5))
     gen_win.attron(strength_color)
     gen_win.addstr(footer_row, 40, f"{strength_str} {check_char}")
     gen_win.attroff(strength_color)
@@ -394,7 +402,7 @@ def draw_ui(stdscr, state):
     cmd_win.attron(curses.color_pair(1))
     cmd_win.box()
     cmd_win.addstr(0, 2, " Commands ")
-    cmd_win.attroff(1)
+    cmd_win.attroff(curses.color_pair(1))
 
     action_key = "[G]" if state["is_first_generation"] else "[R]"
     action_desc = "Generate" if state["is_first_generation"] else "Regenerate"
@@ -411,8 +419,10 @@ def draw_ui(stdscr, state):
     for key, desc in commands:
         cmd_win.attron(curses.color_pair(4))
         cmd_win.addstr(1, curr_x, key)
+        cmd_win.attroff(curses.color_pair(4))
         cmd_win.attron(curses.color_pair(7))
         cmd_win.addstr(1, curr_x + len(key), f" {desc}   ")
+        cmd_win.attroff(curses.color_pair(7))
         curr_x += len(key) + len(desc) + 4
     cmd_win.refresh()
     return True

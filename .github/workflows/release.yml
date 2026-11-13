@@ -5,21 +5,13 @@ on:
     tags:
       - 'v*'
 
-# Add this block to fix the permission boundary
 permissions:
   contents: write
 
 jobs:
-  build:
-    name: Build Binary Assets
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        include:
-          - os: ubuntu-latest
-            asset_name: cryptopunk-linux
-          - os: windows-latest
-            asset_name: cryptopunk-windows.exe
+  build-linux:
+    name: Build Linux AppImage
+    runs-on: ubuntu-latest
 
     steps:
     - name: Checkout Code
@@ -30,49 +22,133 @@ jobs:
       with:
         python-version: '3.12'
 
-    - name: Install Dependencies
+    - name: Install build dependencies
       run: |
+        sudo apt-get update -qq
+        sudo apt-get install -y --no-install-recommends \
+          libfuse2 \
+          desktop-file-utils \
+          libglib2.0-dev
         python -m pip install --upgrade pip
         pip install pyinstaller
-        # Explicitly inject windows-curses on the Windows builder engine
-        if [ "${{ matrix.os }}" = "windows-latest" ]; then pip install windows-curses; fi
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-      shell: bash
 
-    - name: Compile with PyInstaller
+    - name: Compile with PyInstaller (Linux)
       run: |
-        pyinstaller --onefile --console --clean --name=${{ matrix.asset_name }} password_gen.py
-      shell: bash
+        pyinstaller \
+          --onefile \
+          --console \
+          --clean \
+          --name=cryptopunk \
+          password_gen.py
 
-    - name: Upload Build Artifacts
+    - name: Package as AppImage
+      run: |
+        # Download appimagetool
+        wget -q "https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage" \
+          -O /tmp/appimagetool
+        chmod +x /tmp/appimagetool
+
+        # Build the AppDir structure
+        mkdir -p AppDir/usr/bin
+        cp dist/cryptopunk AppDir/usr/bin/cryptopunk
+
+        # Desktop entry (required by AppImage spec)
+        cat > AppDir/cryptopunk.desktop << 'EOF'
+        [Desktop Entry]
+        Name=CryptoPunk
+        Exec=cryptopunk
+        Icon=cryptopunk
+        Type=Application
+        Categories=Utility;Security;
+        Terminal=true
+        Comment=Interactive terminal password generator
+        EOF
+
+        # Minimal icon (AppImage requires one; using a 1-pixel PNG placeholder)
+        # A real icon can be dropped in as cryptopunk.png (256x256) alongside the .desktop
+        cp /usr/share/pixmaps/debian-logo.png AppDir/cryptopunk.png 2>/dev/null || \
+          convert -size 256x256 xc:'#0d1117' AppDir/cryptopunk.png 2>/dev/null || \
+          printf '\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x01\x00\x00\x00\x01\x00\x08\x02\x00\x00\x00\x90wS\xde\x00\x00\x00\x0cIDATx\x9cc\xf8\x0f\x00\x00\x01\x01\x00\x05\x18\xd8N\x00\x00\x00\x00IEND\xaeB`\x82' \
+            > AppDir/cryptopunk.png
+
+        # AppRun launcher script
+        cat > AppDir/AppRun << 'EOF'
+        #!/bin/bash
+        SELF_DIR="$(dirname "$(readlink -f "$0")")"
+        exec "$SELF_DIR/usr/bin/cryptopunk" "$@"
+        EOF
+        chmod +x AppDir/AppRun
+
+        # Build AppImage
+        ARCH=x86_64 /tmp/appimagetool AppDir cryptopunk-linux-x86_64.AppImage
+
+    - name: Upload Linux Artifact
       uses: actions/upload-artifact@v4
       with:
-        name: ${{ matrix.asset_name }}
-        path: dist/${{ matrix.asset_name }}
+        name: cryptopunk-linux
+        path: cryptopunk-linux-x86_64.AppImage
+
+  build-windows:
+    name: Build Windows EXE
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
+
+    - name: Install build dependencies
+      shell: bash
+      run: |
+        python -m pip install --upgrade pip
+        pip install pyinstaller windows-curses
+        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
+    - name: Compile with PyInstaller (Windows)
+      shell: bash
+      run: |
+        pyinstaller \
+          --onefile \
+          --console \
+          --clean \
+          --name=cryptopunk-windows-x86_64 \
+          password_gen.py
+
+    - name: Upload Windows Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: cryptopunk-windows
+        path: dist/cryptopunk-windows-x86_64.exe
 
   release:
     name: Create GitHub Release
-    needs: build
+    needs: [build-linux, build-windows]
     runs-on: ubuntu-latest
+
     steps:
-    - name: Download Linux Artifact
+    - name: Download Linux AppImage
       uses: actions/download-artifact@v4
       with:
         name: cryptopunk-linux
         path: dist/
 
-    - name: Download Windows Artifact
+    - name: Download Windows EXE
       uses: actions/download-artifact@v4
       with:
-        name: cryptopunk-windows.exe
+        name: cryptopunk-windows
         path: dist/
 
     - name: Create GitHub Release
       uses: softprops/action-gh-release@v2
       with:
         files: |
-          dist/cryptopunk-linux
-          dist/cryptopunk-windows.exe
+          dist/cryptopunk-linux-x86_64.AppImage
+          dist/cryptopunk-windows-x86_64.exe
         draft: false
         prerelease: false
         generate_release_notes: true
